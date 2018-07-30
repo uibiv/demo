@@ -1,3 +1,5 @@
+dist: trusty
+
 language: python
 
 jobs:
@@ -17,7 +19,7 @@ jobs:
 
 matrix:
   allow_failures:
-    - python: "nightly"
+    - python: nightly
 
 install:
     - ./bootstrap.sh
