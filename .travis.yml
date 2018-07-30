@@ -1,19 +1,19 @@
 language: python
 
 jobs:
-  inlude:
-    - python: "3.6"
+  include:
+    - python: 3.6
     - <<: *xenial-mixin
-      python: "nightly"
+      python: nightly
 
-mixins:
+.mixins:
 - &xenial-mixin
   dist: xenial
   sudo: true
   addons:
     apt:
       packages:
-        -libgnutls-dev
+        - libgnutls-dev
 
 matrix:
   allow_failures:
