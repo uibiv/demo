@@ -3,11 +3,10 @@ from urllib.parse import urlparse, urljoin
 
 from requests.utils import requote_uri
 from requests.sessions import (
-    Session as OriginSession, Request, preferred_clock,
+    Session, Request, preferred_clock,
     timedelta, dispatch_hook, extract_cookies_to_jar
 )
 from requests.exceptions import TooManyRedirects
-from requests.sessions import *  # noqa
 from requests.sessions import (
     cookielib,
     cookiejar_from_dict,
@@ -17,19 +16,19 @@ from requests.sessions import (
     merge_setting,
     CaseInsensitiveDict,
     merge_hooks)
-from .adapters import HTTPAdapter
-from .models import PreparedRequest
+from .adapters import CuHTTPAdapter
+from .models import CuPreparedRequest
 from .models import MultipartBody, StreamBody
 
 logger = logging.getLogger(__name__)
 
 
-class Session(OriginSession):
+class CuSession(Session):
 
     def __init__(self):
         super().__init__()
-        self.mount('https://', HTTPAdapter())
-        self.mount('http://', HTTPAdapter())
+        self.mount('https://', CuHTTPAdapter())
+        self.mount('http://', CuHTTPAdapter())
 
     def __enter__(self):
         raise AttributeError(
@@ -72,7 +71,7 @@ class Session(OriginSession):
         if self.trust_env and not auth and not self.auth:
             auth = get_netrc_auth(request.url)
 
-        p = PreparedRequest()
+        p = CuPreparedRequest()
         p.prepare(
             method=request.method.upper(),
             url=request.url,
@@ -115,8 +114,6 @@ class Session(OriginSession):
 
         # Send the request
         r = await adapter.send(request, **kwargs)
-        if r.is_redirect:
-            r.url = self._get_next_url(r)
 
         # Total elapsed time of the request (approximately)
         elapsed = preferred_clock() - start
@@ -197,9 +194,7 @@ class Session(OriginSession):
                 raise TooManyRedirects('Exceeded %s redirects.' % self.max_redirects, response=resp)
 
             next_request = request.copy()
-            if next_request.headers:
-                next_request.headers.pop('Host', None)
-            next_request.url = resp.url
+            next_request.url = self._get_next_url(resp)
             next_request.method = self._get_next_method(resp)
             logger.debug(f'Redirect to: {next_request.method} {next_request.url}')
             headers = next_request.headers
@@ -270,9 +265,9 @@ class Session(OriginSession):
 
 def session():
     """
-    Returns a :class:`Session` for context-management.
+    Returns a :class:`CuSession` for context-management.
 
-    :rtype: Session
+    :rtype: CuSession
     """
 
-    return Session()
+    return CuSession()

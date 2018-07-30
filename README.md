@@ -7,7 +7,7 @@
 ## Overview
 
 ```python
-from newio import run
+from newio_kernel import run
 from newio_requests import get, post
 
 async def main():

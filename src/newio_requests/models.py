@@ -5,24 +5,15 @@ from uuid import uuid4
 from os.path import basename
 from urllib.parse import quote
 
-from requests.models import *  # noqa
-from requests.models import (
-    Request as OriginRequest,
-    Response as OriginResponse,
-    PreparedRequest as OriginPreparedRequest,
-)
+from requests.models import Request, Response, PreparedRequest
 from requests.utils import super_len, to_key_val_list
 from requests.exceptions import (
-    ChunkedEncodingError,
-    ContentDecodingError,
-    ConnectionError,
-    StreamConsumedError,
-    UnrewindableBodyError,
-)
+    ChunkedEncodingError, ContentDecodingError,
+    ConnectionError, StreamConsumedError, UnrewindableBodyError)
 from requests.models import ITER_CHUNK_SIZE
 
 from .utils import stream_decode_response_unicode, iter_slices
-from .http import DecodeError, ProtocolError, ReadTimeoutError
+from .cuhttp import DecodeError, ProtocolError, ReadTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -30,22 +21,20 @@ EOL = '\r\n'
 bEOL = b'\r\n'
 
 
-class Response(OriginResponse):
-    """The :class:`Response <Response>` object, which contains a
+class CuResponse(Response):
+    """The :class:`CuResponse <CuResponse>` object, which contains a
     server's response to an async HTTP request.
     """
 
     def __enter__(self):
         raise AttributeError(
             f'{type(self).__name__} not support synchronous context '
-            'manager, use asynchronous context manager instead.'
-        )
+            'manager, use asynchronous context manager instead.')
 
     def __exit__(self, *args):
         raise AttributeError(
             f'{type(self).__name__} not support synchronous context '
-            'manager, use asynchronous context manager instead.'
-        )
+            'manager, use asynchronous context manager instead.')
 
     async def __aenter__(self):
         return self
@@ -56,8 +45,7 @@ class Response(OriginResponse):
     def __iter__(self):
         raise AttributeError(
             f'{type(self).__name__} not support synchronous iter, '
-            'use asynchronous iter instead.'
-        )
+            'use asynchronous iter instead.')
 
     def __aiter__(self):
         """Allows you to use a response as an iterator."""
@@ -82,9 +70,7 @@ class Response(OriginResponse):
         if self._content_consumed and isinstance(self._content, bool):
             raise StreamConsumedError()
         elif chunk_size is not None and not isinstance(chunk_size, int):
-            raise TypeError(
-                'chunk_size must be an int, it is instead a %s.' % type(chunk_size)
-            )
+            raise TypeError('chunk_size must be an int, it is instead a %s.' % type(chunk_size))
 
         async def generate():
             async with self:
@@ -113,9 +99,7 @@ class Response(OriginResponse):
 
         return chunks
 
-    async def iter_lines(
-        self, chunk_size=ITER_CHUNK_SIZE, decode_unicode=None, delimiter=None
-    ):
+    async def iter_lines(self, chunk_size=ITER_CHUNK_SIZE, decode_unicode=None, delimiter=None):
         """Iterates over the response data, one line at a time.  When
         stream=True is set on the request, this avoids reading the
         content at once into memory for large responses.
@@ -156,12 +140,14 @@ class Response(OriginResponse):
         if self._content is False:
             # Read the contents.
             if self._content_consumed:
-                raise RuntimeError('The content for this response was already consumed')
+                raise RuntimeError(
+                    'The content for this response was already consumed')
 
             if self.status_code == 0 or self.raw is None:
                 self._content = None
             else:
-                raise RuntimeError('The content for this response was not readed')
+                raise RuntimeError(
+                    'The content for this response was not readed')
 
         self._content_consumed = True
         # don't need to release the connection; that's been handled by urllib3
@@ -175,9 +161,7 @@ class Response(OriginResponse):
             else:
                 await self.connection.close()
         else:
-            logger.info(
-                f'Response body not consumed, will close the connection: {self.connection}'
-            )
+            logger.info(f'Response body not consumed, will close the connection: {self.connection}')
             await self.connection.close()
 
 
@@ -207,8 +191,8 @@ def rewind_file(file, position):
             body_seek(position)
         except (IOError, OSError):
             raise UnrewindableBodyError(
-                'An error occurred when rewinding request ' 'body for redirect.'
-            )
+                'An error occurred when rewinding request '
+                'body for redirect.')
     else:
         raise UnrewindableBodyError('Unable to rewind request body for redirect.')
 
@@ -216,29 +200,12 @@ def rewind_file(file, position):
 class Field:
 
     __slots__ = (
-        'name',
-        'filename',
-        'content',
-        'file',
-        'headers',
-        'content_length',
-        'encoded_headers',
-        '_should_close_file',
-        '_body_position',
+        'name', 'filename', 'content', 'file', 'headers', 'content_length',
+        'encoded_headers', '_should_close_file', '_body_position',
     )
 
-    def __init__(
-        self,
-        name,
-        *,
-        filename=None,
-        headers=None,
-        content_type=None,
-        file=None,
-        filepath=None,
-        content=None,
-        encoding='utf-8',
-    ):
+    def __init__(self, name, *, filename=None, headers=None, content_type=None,
+                 file=None, filepath=None, content=None, encoding='utf-8'):
         self.name = quote(name, safe='')
         self.headers = headers or {}
         self.content_length = None
@@ -308,6 +275,7 @@ class Field:
 
 
 class MultipartBody:
+
     def __init__(self, fields, boundary=None):
         self.fields = fields
         if not boundary:
@@ -360,6 +328,7 @@ class MultipartBody:
 
 
 class StreamBody:
+
     def __init__(self, data):
         self._data = data
         self._body_position = safe_tell(data)
@@ -376,7 +345,8 @@ class StreamBody:
         rewind_file(self._data, self._body_position)
 
 
-class PreparedRequest(OriginPreparedRequest):
+class CuPreparedRequest(PreparedRequest):
+
     def prepare_body(self, data, files, json=None):
         """Prepares the given HTTP body data."""
         if not files:
@@ -409,26 +379,19 @@ class PreparedRequest(OriginPreparedRequest):
             else:
                 content = None
 
-            fields.append(
-                Field(
-                    k,
-                    filename=fn,
-                    file=fp,
-                    content=content,
-                    content_type=ft,
-                    headers=fh,
-                )
-            )
+            fields.append(Field(
+                k, filename=fn, file=fp, content=content,
+                content_type=ft, headers=fh))
 
         self.body = MultipartBody(fields)
         self.headers.setdefault('Content-Type', self.body.content_type)
         self.prepare_content_length(self.body)
 
 
-class Request(OriginRequest):
+class CuRequest(Request):
     def prepare(self):
         """Constructs a :class:`PreparedRequest <PreparedRequest>` for transmission and returns it."""
-        p = PreparedRequest()
+        p = CuPreparedRequest()
         p.prepare(
             method=self.method,
             url=self.url,

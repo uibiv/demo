@@ -1,29 +1,15 @@
-dist: trusty
-sudo: true
-
 language: python
 
-jobs:
-  include:
-    - python: 3.6
-    # - <<: *xenial-mixin
-    - python: nightly
-
-# .mixins:
-# - &xenial-mixin
-#   dist: xenial
-#   sudo: true
-#   addons:
-#     apt:
-#       packages:
-#         - libgnutls-dev
+python:
+  - "3.6"
+  - "nightly"
 
 matrix:
   allow_failures:
-    - python: nightly
+    - python: "nightly"
 
-# install:
-#     - ./bootstrap.sh
+install:
+    - ./bootstrap.sh
 
 script:
     - inv lint

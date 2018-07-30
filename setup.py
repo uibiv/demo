@@ -21,12 +21,13 @@ setup(
     install_requires=[
         'httptools',
         'yarl',
-        'newio>=0.6.1',
+        'newio>=0.4.2',
         'requests',
         'namedlist',
     ],
     extras_require={
         'dev': [
+            'newio_kernel>=0.4.2',
             'pre-commit==1.10.2',
             'tox==2.9.1',
             'flake8==3.5.0',
@@ -37,7 +38,6 @@ setup(
             'invoke==0.22.0',
             'twine==1.9.1',
             'wheel==0.30.0',
-            'bumpversion==0.5.3',
         ],
     },
     zip_safe=False,
