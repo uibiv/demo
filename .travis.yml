@@ -5,17 +5,17 @@ language: python
 jobs:
   include:
     - python: 3.6
-    - <<: *xenial-mixin
-      python: nightly
+    # - <<: *xenial-mixin
+    - python: nightly
 
-.mixins:
-- &xenial-mixin
-  dist: xenial
-  sudo: true
-  addons:
-    apt:
-      packages:
-        - libgnutls-dev
+# .mixins:
+# - &xenial-mixin
+#   dist: xenial
+#   sudo: true
+#   addons:
+#     apt:
+#       packages:
+#         - libgnutls-dev
 
 matrix:
   allow_failures:
