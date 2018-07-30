@@ -22,8 +22,8 @@ matrix:
   allow_failures:
     - python: nightly
 
-install:
-    - ./bootstrap.sh
+# install:
+#     - ./bootstrap.sh
 
 script:
     - inv lint
